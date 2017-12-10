@@ -1,40 +1,57 @@
-#!/usr/bin/python
-from app import app
+#!/usr/bin/python3
+# -*- coding: utf-8 -*-
 
+#import adres
+import calc
+import hardcode
+from hardcode import check_hardcode, check_hard_calc
+from calc import casco
+from app import app
+import pandas as pd
+#import echo
 #!flask/bin/python
 from flask import Flask, jsonify
 
 app = Flask(__name__)
 
-tasks = [
-        {
-            'id': 1,
-            'title': u'Buy groceries',
-            'description': u'Milk, Cheese, Pizza, Fruit, Tylenol',
-            'done': False
-                },
-        {
-            'id': 2,
-            'title': u'Learn Python',
-            'description': u'Need to find a good Python tutorial on the web',
-            'done': False
-                }
-    ]
+texts =  pd.read_csv('hardcoded_phrases.csv', names=['code', 'answer', 'frequency'])
 from flask import request
 @app.route('/todo/api/v1.0/tasks', methods=['POST'])
 def create_task():
-    if not request.json or not 'title' in request.json:
-                abort(400)
-    task = {
-                        'id': tasks[-1]['id'] + 1,
-                        'title': request.json['title'],
-                        'description': request.json.get('description', ""),
-                        'done': False,
-                             'text': "spasido za obraewenie dosvidania" 
+    print(texts)
+    print(texts[texts.code == "E"])
+    print( request.json)
+    hist = request.json
+    ans = hist["lname"]
+    chh = check_hardcode(request.json)   
+    if chh != "":
+        ans = {'text' : chh}
+        resp = {
+            'context': "none",
+            'ans': ans
+                                        }
+
+        return jsonify({'resp': resp}), 201
+    
+    #calc = casco(request.json["messages"])
+    if check_hard_calc(request.json) or request.json["context"]=="calc":
+        import calc
+        calc = casco(request.json["messages"])
+        del calc
+        calc = casco(request.json["messages"])
+        print(calc)
+        c_resp = calc.message()
+        resp = {                      
+                        'context': "none" if c_resp["exit"] else "calc",
+                             'ans': c_resp 
                             }
-    tasks.append(task)
-    return jsonify({'task': task}), 201
-                
+    
+        return jsonify({'resp': resp}), 201
+    resp = {
+        'context': u"none",
+        'ans': {'text':u"Ваш вопрос перенаправлен специалисту"}
+        }
+    return jsonify({'resp':resp})
 @app.route('/todo/api/v1.0/tasks/<int:task_id>', methods=['GET'])
 
 def get_task(task_id):
